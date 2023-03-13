@@ -4,8 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+aiokafka = "==0.8.0"
 
 [dev-packages]
+mypy = "*"
+pytest = "*"
+pytest-cov = "*"
+pydocstyle = "*"
+yapf = "*"
+isort = "*"
 
 [requires]
 python_version = "3.9"
