@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Union, Optional, Callable, Any, Coroutine
 
 
-class QueueProtocol(ABC):
+class QueueObserver(ABC):
 
     @abstractmethod
     def __init__(
@@ -32,7 +32,7 @@ class QueueProtocol(ABC):
         ...
 
 
-class AsyncQueueObserver(QueueProtocol):
+class AsyncQueueObserver(QueueObserver):
 
     def __init__(
         self,
