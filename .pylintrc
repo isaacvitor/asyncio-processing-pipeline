@@ -1,0 +1,4 @@
+[master]
+disable=
+    missing-docstring,
+    no-value-for-parameter,

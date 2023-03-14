@@ -13,6 +13,7 @@ pytest-cov = "*"
 pydocstyle = "*"
 yapf = "*"
 isort = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.9"
