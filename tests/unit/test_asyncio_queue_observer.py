@@ -4,7 +4,12 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.pipeline.observers import AsyncQueueObserver
+from async_pipeline.pipeline.observers import AsyncQueueObserver
+from async_pipeline.exceptions.internals import AsyncObserverException
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 @pytest.fixture(name="input_queue")
@@ -14,6 +19,11 @@ def input_asyncio_queue() -> asyncio.Queue:
 
 @pytest.fixture(name="output_queue")
 def output_asyncio_queue() -> asyncio.Queue:
+    return asyncio.Queue()
+
+
+@pytest.fixture(name="error_queue")
+def error_asyncio_queue() -> asyncio.Queue:
     return asyncio.Queue()
 
 
@@ -97,3 +107,29 @@ async def test_output_queue_get_value(input_queue: asyncio.Queue,
     assert output_queue.qsize() != 0
     result: Any = output_queue.get_nowait()
     assert result == 2
+
+
+@pytest.mark.asyncio
+async def test_raise_exception(input_queue: asyncio.Queue,
+                               output_queue: asyncio.Queue,
+                               error_queue: asyncio.Queue) -> None:
+
+    async def raise_exception(number: int) -> int:
+        raise ValueError('Raising a ValueError just because.')
+
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue,
+        on_item=raise_exception,
+        output_queue=output_queue,
+        exception_queue=error_queue)
+
+    async_queue_observer.start()
+    input_queue.put_nowait(1)
+
+    await asyncio.sleep(0)
+
+    assert error_queue.qsize() != 0
+    result: AsyncObserverException = error_queue.get_nowait()
+    assert isinstance(result, AsyncObserverException)
+    assert result is not None
+    LOGGER.info(result)

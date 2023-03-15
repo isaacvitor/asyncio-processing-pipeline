@@ -4,7 +4,7 @@ from random import randint
 
 import pytest
 
-from src.pipeline.observers import AsyncQueueObserver
+from async_pipeline.pipeline.observers import AsyncQueueObserver
 
 
 @pytest.fixture(name="input_queue")
