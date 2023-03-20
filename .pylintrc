@@ -2,3 +2,4 @@
 disable=
     missing-docstring,
     no-value-for-parameter,
+    broad-exception-caught,
