@@ -11,8 +11,10 @@ mypy = "*"
 pytest = "*"
 pytest-cov = "*"
 pydocstyle = "*"
-yapf = "*"
 isort = "*"
+pylint = "*"
+pytest-asyncio = "*"
+black = "*"
 
 [requires]
 python_version = "3.9"
