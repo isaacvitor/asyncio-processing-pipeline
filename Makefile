@@ -1,6 +1,46 @@
+# Don't forget to add all non-producing file targets to the PHONY list
+.PHONY: help dev-dependencies compose-up compose-down
+.DEFAULT_GOAL := help
 
-coverage: # Run pytest and coverage 
-	pytest  --cov=src --cov-report term-missing $(path)
+help: ## Prints this help message and exits.
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+PROJECT_PATH=async_pipeline
+TESTPATH=./tests
+ifdef file
+	 TESTPATH=./tests -k $(file)
+endif
+
+all: lint coverage ## Run all tests and checks 
+
+# Linters
+mypy: # mypy linter
+	mypy $(PROJECT_PATH)
+
+pylint: # mypy linter
+	pylint $(PROJECT_PATH)
+
+lint: mypy pylint ## Run linters
+	
+
+# Formater
+formatter: ## Run formatter
+	black .
+
+test: ## Execute pytest in a given file or all tests - Ex: make tests file=test_my_test.py or make tests to run all tests
+	pytest -s -x $(TESTPATH)
+
+
+coverage: TESTPATH=--cov=$(PROJECT_PATH) --cov-report term-missing --cov-report html ./tests
+coverage:test ## Run pytest and coverage 
+
+
+## Run pytest
+unit-tests: TESTPATH=./tests/unit
+unit-tests: tests ## Execute unit tests
+
+integration-tests: TESTPATH=./tests/integration
+integration-tests: tests ## Execute integration tests
 
 # Make sure you have nodemon installed
 wtest: ## Start pytest in watch mode using nodemon

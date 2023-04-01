@@ -1,13 +1,15 @@
 import asyncio
+import logging
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
 from async_pipeline.pipeline.observers import AsyncQueueObserver, ObserverStatus
-from async_pipeline.utils.exceptions import AsyncObserverException, ObserverStatusException
-
-import logging
+from async_pipeline.utils.exceptions import (
+    AsyncObserverException,
+    ObserverStatusException,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -33,8 +35,9 @@ async def nope(element: Any) -> Any:
 
 @pytest.mark.asyncio
 async def test_start_observer(input_queue: asyncio.Queue) -> None:
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     async_queue_observer.start()
     assert async_queue_observer.status == ObserverStatus.RUNNING
@@ -42,8 +45,9 @@ async def test_start_observer(input_queue: asyncio.Queue) -> None:
 
 @pytest.mark.asyncio
 async def test_start_observer_twice(input_queue: asyncio.Queue) -> None:
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     with pytest.raises(ObserverStatusException):
         async_queue_observer.start()
@@ -52,8 +56,9 @@ async def test_start_observer_twice(input_queue: asyncio.Queue) -> None:
 
 @pytest.mark.asyncio
 async def test_stop_observer_without_start(input_queue: asyncio.Queue) -> None:
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     with pytest.raises(ObserverStatusException):
         async_queue_observer.stop()
@@ -61,8 +66,9 @@ async def test_stop_observer_without_start(input_queue: asyncio.Queue) -> None:
 
 @pytest.mark.asyncio
 async def test_stop_observer(input_queue: asyncio.Queue) -> None:
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     async_queue_observer.start()
 
@@ -72,7 +78,6 @@ async def test_stop_observer(input_queue: asyncio.Queue) -> None:
 
 
 def test_no_elements_in_the_input_queue(input_queue: asyncio.Queue) -> None:
-
     async_queue_observer = AsyncQueueObserver(input_queue, on_item=nope)
 
     assert len(async_queue_observer) == 0
@@ -81,21 +86,23 @@ def test_no_elements_in_the_input_queue(input_queue: asyncio.Queue) -> None:
 def test_one_element_in_the_input_queue(input_queue: asyncio.Queue) -> None:
     element: Mock = Mock()
     input_queue.put_nowait(element)
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     assert len(async_queue_observer) == 1
 
 
 def test_get_element_input_queue(input_queue: asyncio.Queue) -> None:
-    element_one: Mock = Mock(name='Element 01')
-    element_two: Mock = Mock(name='Element 02')
+    element_one: Mock = Mock(name="Element 01")
+    element_two: Mock = Mock(name="Element 02")
 
     input_queue.put_nowait(element_one)
     input_queue.put_nowait(element_two)
 
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     retrieved_element: Mock = input_queue.get_nowait()
 
@@ -104,10 +111,10 @@ def test_get_element_input_queue(input_queue: asyncio.Queue) -> None:
 
 
 @pytest.mark.asyncio
-async def test_start_observer_must_return_a_future(
-        input_queue: asyncio.Queue) -> None:
-    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-                                                                  on_item=nope)
+async def test_start_observer_must_return_a_future(input_queue: asyncio.Queue) -> None:
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
     observer_task: asyncio.Future = async_queue_observer.start()
 
@@ -129,15 +136,16 @@ async def test_start_observer_must_return_a_future(
 
 
 @pytest.mark.asyncio
-async def test_output_queue_get_value(input_queue: asyncio.Queue,
-                                      output_queue: asyncio.Queue) -> None:
-
+async def test_output_queue_get_value(
+    input_queue: asyncio.Queue, output_queue: asyncio.Queue
+) -> None:
     async def increase_a_number(number: int) -> int:
         number = number + 1
         return number
 
     async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
-        input_queue, on_item=increase_a_number, output_queue=output_queue)
+        input_queue, on_item=increase_a_number, output_queue=output_queue
+    )
 
     async_queue_observer.start()
     input_queue.put_nowait(1)
@@ -149,22 +157,21 @@ async def test_output_queue_get_value(input_queue: asyncio.Queue,
     assert result == 2
 
 
-@pytest.mark.skip(
-    reason="Need a better implementation of error handling architecture")
+@pytest.mark.skip(reason="Need a better implementation of error handling architecture")
 @pytest.mark.asyncio
-async def test_raise_exception(input_queue: asyncio.Queue,
-                               output_queue: asyncio.Queue,
-                               error_queue: asyncio.Queue) -> None:
-
+async def test_raise_exception(
+    input_queue: asyncio.Queue, output_queue: asyncio.Queue, error_queue: asyncio.Queue
+) -> None:
     async def raise_exception(number: int) -> int:
-        raise ValueError('Raising a ValueError just because.')
+        raise ValueError("Raising a ValueError just because.")
 
     with pytest.raises(AsyncObserverException):
         async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
             input_queue,
             on_item=raise_exception,
             output_queue=output_queue,
-            exception_queue=error_queue)
+            exception_queue=error_queue,
+        )
 
         async_queue_observer.start()
         input_queue.put_nowait(1)

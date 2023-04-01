@@ -1,14 +1,16 @@
 """ Module that contains queue observers"""
-from abc import ABC, abstractmethod
 import asyncio
-from enum import Enum, auto
 import multiprocessing as mp
-from sys import exc_info
-from typing import Union, Optional, Callable, Any, Coroutine, TypeVar
+from abc import ABC, abstractmethod
+from enum import Enum, auto
+from typing import Any, Callable, Coroutine, Optional, TypeVar, Union
 
-from async_pipeline.utils.exceptions import AsyncObserverException, ObserverStatusException
+from async_pipeline.utils.exceptions import (
+    AsyncObserverException,
+    ObserverStatusException,
+)
 
-Q = TypeVar('Q', asyncio.Queue, mp.Queue)
+ObservableQueue = TypeVar("ObservableQueue", asyncio.Queue, mp.Queue)
 
 
 class ObserverStatus(Enum):
@@ -19,14 +21,13 @@ class ObserverStatus(Enum):
 
 
 class QueueObserver(ABC):
-
     @abstractmethod
     def __init__(
         self,
-        input_queue: Q,
+        input_queue: ObservableQueue,
         on_item: Callable[..., Coroutine[Any, Any, Any]],
-        output_queue: Optional[Q],
-        exception_queue: Optional[Q],
+        output_queue: Optional[ObservableQueue],
+        exception_queue: Optional[ObservableQueue],
     ) -> None:
         ...
 
@@ -48,7 +49,6 @@ class QueueObserver(ABC):
 
 
 class AsyncQueueObserver(QueueObserver):
-
     def __init__(
         self,
         input_queue: asyncio.Queue,
@@ -68,12 +68,11 @@ class AsyncQueueObserver(QueueObserver):
             self.observer_task = asyncio.create_task(self._observer())
             self.__status = ObserverStatus.RUNNING
             return self.observer_task
-        raise ObserverStatusException('Observer already running')
-
+        raise ObserverStatusException("Observer already running")
 
     def stop(self) -> None:
         if self.__status is not ObserverStatus.RUNNING:
-            raise ObserverStatusException('Observer is not running')
+            raise ObserverStatusException("Observer is not running")
         try:
             if not self.observer_task.cancelled():
                 self.observer_task.cancel()
@@ -98,8 +97,7 @@ class AsyncQueueObserver(QueueObserver):
                         self.__output_queue.put_nowait(result)
                 except Exception as ex:
                     if self.__exception_queue is not None:
-                        self.__exception_queue.put_nowait(
-                            AsyncObserverException(ex))
+                        self.__exception_queue.put_nowait(AsyncObserverException(ex))
                     else:
                         raise AsyncObserverException from ex
 

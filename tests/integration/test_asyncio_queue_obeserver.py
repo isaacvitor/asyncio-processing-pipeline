@@ -1,6 +1,6 @@
 import asyncio
-from typing import Any
 from random import randint
+from typing import Any
 
 import pytest
 
@@ -23,18 +23,20 @@ async def nope(element: Any) -> Any:
 
 @pytest.mark.asyncio
 async def test_multiple_observers_must_do_different_job(
-        input_queue: asyncio.Queue, output_queue: asyncio.Queue) -> None:
-
+    input_queue: asyncio.Queue, output_queue: asyncio.Queue
+) -> None:
     async def increase_a_number(number: int) -> int:
         await asyncio.sleep(randint(1, 3))
         number = number + 1
         return number
 
     async_queue_observer_01: AsyncQueueObserver = AsyncQueueObserver(
-        input_queue, on_item=increase_a_number, output_queue=output_queue)
+        input_queue, on_item=increase_a_number, output_queue=output_queue
+    )
 
     async_queue_observer_02: AsyncQueueObserver = AsyncQueueObserver(
-        input_queue, on_item=increase_a_number, output_queue=output_queue)
+        input_queue, on_item=increase_a_number, output_queue=output_queue
+    )
 
     async_queue_observer_01.start()
     async_queue_observer_02.start()
