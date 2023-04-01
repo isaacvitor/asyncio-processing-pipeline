@@ -24,8 +24,8 @@ def output_asyncio_queue() -> asyncio.Queue:
     return asyncio.Queue()
 
 
-@pytest.fixture(name="error_queue")
-def error_asyncio_queue() -> asyncio.Queue:
+@pytest.fixture(name="exception_queue")
+def exception_asyncio_queue() -> asyncio.Queue:
     return asyncio.Queue()
 
 
@@ -121,18 +121,17 @@ async def test_start_observer_must_return_a_future(input_queue: asyncio.Queue) -
     assert isinstance(observer_task, asyncio.Future)
 
 
-# @pytest.mark.asyncio
-# async def test_stop_observer_cancel_observer_task(
-#         input_queue: asyncio.Queue) -> None:
-#     async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(input_queue,
-#                                                                   on_item=nope)
+@pytest.mark.asyncio
+async def test_stop_observer_cancel_observer_task(input_queue: asyncio.Queue) -> None:
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue, on_item=nope
+    )
 
-#     observer_task: asyncio.Future = async_queue_observer.start()
+    observer_task: asyncio.Future = async_queue_observer.start()
 
-#     async_queue_observer.stop()
-
-#     with pytest.raises(asyncio.CancelledError):
-#         await observer_task
+    with pytest.raises(asyncio.CancelledError):
+        async_queue_observer.stop()
+        await observer_task
 
 
 @pytest.mark.asyncio
@@ -157,29 +156,76 @@ async def test_output_queue_get_value(
     assert result == 2
 
 
-@pytest.mark.skip(reason="Need a better implementation of error handling architecture")
 @pytest.mark.asyncio
-async def test_raise_exception(
-    input_queue: asyncio.Queue, output_queue: asyncio.Queue, error_queue: asyncio.Queue
+async def test_raise_exception_without_exception_queue(
+    input_queue: asyncio.Queue, output_queue: asyncio.Queue
 ) -> None:
     async def raise_exception(number: int) -> int:
         raise ValueError("Raising a ValueError just because.")
 
-    with pytest.raises(AsyncObserverException):
-        async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
-            input_queue,
-            on_item=raise_exception,
-            output_queue=output_queue,
-            exception_queue=error_queue,
-        )
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue,
+        on_item=raise_exception,
+        output_queue=output_queue,
+        exception_queue=None,
+    )
 
-        async_queue_observer.start()
-        input_queue.put_nowait(1)
+    async_queue_observer.start()
+    input_queue.put_nowait(1)
+    await asyncio.sleep(0)
+    returned_exception = async_queue_observer.observer_task.exception()
+    assert isinstance(returned_exception, AsyncObserverException)
+    assert async_queue_observer.status == ObserverStatus.FAILED
 
-        # await asyncio.sleep(0)
 
-        # assert error_queue.qsize() != 0
-        # result: AsyncObserverException = error_queue.get_nowait()
-        # assert isinstance(result, AsyncObserverException)
-        # assert result is not None
-        # LOGGER.info(result)
+@pytest.mark.asyncio
+async def test_raise_exception_with_exception_queue(
+    input_queue: asyncio.Queue,
+    output_queue: asyncio.Queue,
+    exception_queue: asyncio.Queue,
+) -> None:
+    async def raise_exception(number: int) -> int:
+        raise ValueError("Raising a ValueError just because.")
+
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue,
+        on_item=raise_exception,
+        output_queue=output_queue,
+        exception_queue=exception_queue,
+    )
+
+    async_queue_observer.start()
+    input_queue.put_nowait(1)
+    await asyncio.sleep(0)
+
+    assert exception_queue.qsize() == 1
+
+    returned_exception = exception_queue.get_nowait()
+    assert isinstance(returned_exception, AsyncObserverException)
+
+
+@pytest.mark.asyncio
+async def test_restart_observer_after_an_exception(
+    input_queue: asyncio.Queue, output_queue: asyncio.Queue
+) -> None:
+    async def raise_exception(number: int) -> int:
+        raise ValueError("Raising a ValueError just because.")
+
+    async_queue_observer: AsyncQueueObserver = AsyncQueueObserver(
+        input_queue,
+        on_item=raise_exception,
+        output_queue=output_queue,
+        exception_queue=None,
+    )
+
+    async_queue_observer.start()
+    input_queue.put_nowait(1)
+    await asyncio.sleep(0)
+
+    assert async_queue_observer.observer_task.done()
+    assert async_queue_observer.status == ObserverStatus.FAILED
+
+    async_queue_observer.start()
+    await asyncio.sleep(0)
+    assert not async_queue_observer.observer_task.done()
+    assert async_queue_observer.status == ObserverStatus.RUNNING

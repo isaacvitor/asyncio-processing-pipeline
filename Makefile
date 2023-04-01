@@ -11,7 +11,7 @@ ifdef file
 	 TESTPATH=./tests -k $(file)
 endif
 
-all: lint coverage ## Run all tests and checks 
+all: lint coverage ## Run all tests and checks
 
 # Linters
 mypy: # mypy linter
@@ -21,7 +21,7 @@ pylint: # mypy linter
 	pylint $(PROJECT_PATH)
 
 lint: mypy pylint ## Run linters
-	
+
 
 # Formater
 formatter: ## Run formatter
@@ -32,15 +32,15 @@ test: ## Execute pytest in a given file or all tests - Ex: make tests file=test_
 
 
 coverage: TESTPATH=--cov=$(PROJECT_PATH) --cov-report term-missing --cov-report html ./tests
-coverage:test ## Run pytest and coverage 
+coverage:test ## Run pytest and coverage
 
 
 ## Run pytest
-unit-tests: TESTPATH=./tests/unit
-unit-tests: tests ## Execute unit tests
+unit-test: TESTPATH=./tests/unit
+unit-test: test ## Execute unit tests
 
-integration-tests: TESTPATH=./tests/integration
-integration-tests: tests ## Execute integration tests
+integration-test: TESTPATH=./tests/integration
+integration-test: test ## Execute integration tests
 
 # Make sure you have nodemon installed
 wtest: ## Start pytest in watch mode using nodemon

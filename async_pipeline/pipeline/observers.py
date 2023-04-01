@@ -1,12 +1,14 @@
 """ Module that contains queue observers"""
 import asyncio
 import multiprocessing as mp
+import traceback
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Any, Callable, Coroutine, Optional, TypeVar, Union
 
 from async_pipeline.utils.exceptions import (
     AsyncObserverException,
+    ExceptionInfo,
     ObserverStatusException,
 )
 
@@ -41,6 +43,10 @@ class QueueObserver(ABC):
 
     @abstractmethod
     async def _observer(self) -> None:
+        ...
+
+    @abstractmethod
+    def send_exception(self, exception: AsyncObserverException) -> None:
         ...
 
     @abstractmethod
@@ -91,17 +97,35 @@ class AsyncQueueObserver(QueueObserver):
                 try:
                     task: Any = await self.__input_queue.get()
                     result: Any = await self.on_item(task)
-                    self.__input_queue.task_done()
 
                     if self.__output_queue is not None:
                         self.__output_queue.put_nowait(result)
                 except Exception as ex:
-                    if self.__exception_queue is not None:
-                        self.__exception_queue.put_nowait(AsyncObserverException(ex))
-                    else:
-                        raise AsyncObserverException from ex
+                    async_observer_exception: AsyncObserverException = (
+                        AsyncObserverException(
+                            "An exception occurs in the observer",
+                            exception_info=ExceptionInfo(
+                                exception=ex,
+                                stack_trace=traceback.format_exc(),
+                                task=task,
+                            ),
+                        )
+                    )
+                    self.send_exception(async_observer_exception)
+                finally:
+                    self.__input_queue.task_done()
 
             await asyncio.sleep(0)
+
+    def send_exception(self, exception: AsyncObserverException) -> None:
+        if self.__exception_queue is not None:
+            self.__exception_queue.put_nowait(exception)
+
+        self.__status = ObserverStatus.FAILED
+        raise AsyncObserverException(
+            "The observer was stopped because of exception was not handled",
+            exception_info=exception.exception_info,
+        ) from exception
 
     def __len__(self) -> int:
         return self.__input_queue.qsize()
